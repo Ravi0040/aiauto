@@ -8,10 +8,17 @@
             {}
           ]
         },
-        "filters": {},
-        "options": {}
+        "filters": {
+          "readStatus": "unread",
+          "foldersToInclude": [
+            "inbox"
+          ],
+          "custom": "toRecipients/any(r:r/emailAddress/address eq 'BeAware@tpcentralodisha.com') or ccRecipients/any(r:r/emailAddress/address eq 'BeAware@tpcentralodisha.com')"
+        },
+        "options": {},
+        "event": "messageReceived"
       },
-      "name": "Outlook Trigger",
+      "name": "Outlook Trigger - BeAware Inbox",
       "type": "n8n-nodes-base.microsoftOutlookTrigger",
       "typeVersion": 1,
       "position": [
@@ -22,9 +29,27 @@
       "credentials": {
         "microsoftOutlookOAuth2Api": {
           "id": "rzOcDIM6gHzFiWyG",
-          "name": "Microsoft Outlook account"
+          "name": "BeAware Outlook OAuth2 Credential"
         }
-      }
+      },
+      "notesInFlow": true,
+      "notes": "Mailbox login is NOT entered in this JSON file. Create an n8n credential first: Credentials → New → Microsoft Outlook OAuth2 API → sign in as BeAware@tpcentralodisha.com (or an account with delegated/shared-mailbox access). Then open this node and select the credential named \"BeAware Outlook OAuth2 Credential\". This trigger polls unread Inbox messages addressed to BeAware@tpcentralodisha.com in To or Cc."
+    },
+    {
+      "parameters": {
+        "content": "## BeAware mailbox credential setup\n\nDo **not** paste the mailbox password into this workflow JSON. n8n stores mailbox login details in **Credentials**.\n\n1. In n8n, go to **Credentials → New**.\n2. Choose **Microsoft Outlook OAuth2 API**.\n3. Name it **BeAware Outlook OAuth2 Credential**.\n4. Sign in with **BeAware@tpcentralodisha.com**, or with a Microsoft 365 account that has delegated/shared-mailbox access to it.\n5. Open **Outlook Trigger - BeAware Inbox** and select that credential.\n6. Open **Send Result** and select the same credential if this workflow should send from the BeAware mailbox.\n\nThis workflow only references the credential by name/id; the actual OAuth token is created and encrypted by n8n at runtime.",
+        "height": 300,
+        "width": 520,
+        "color": 4
+      },
+      "name": "How to connect BeAware mailbox credentials",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -608,
+        -272
+      ],
+      "id": "7a3f1a40-f7a9-4df8-9e2c-0e0000000001"
     },
     {
       "parameters": {
@@ -274,24 +299,15 @@
       "credentials": {
         "microsoftOutlookOAuth2Api": {
           "id": "rzOcDIM6gHzFiWyG",
-          "name": "Microsoft Outlook account"
+          "name": "BeAware Outlook OAuth2 Credential"
         }
-      }
+      },
+      "notesInFlow": true,
+      "notes": "Uses the same n8n Microsoft Outlook OAuth2 credential as the BeAware trigger. Select the BeAware Outlook credential here after importing the workflow."
     }
   ],
   "pinData": {},
   "connections": {
-    "Outlook Trigger": {
-      "main": [
-        [
-          {
-            "node": "Extract EML",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Extract EML": {
       "main": [
         [
@@ -429,6 +445,17 @@
         [
           {
             "node": "Send Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Outlook Trigger - BeAware Inbox": {
+      "main": [
+        [
+          {
+            "node": "Extract EML",
             "type": "main",
             "index": 0
           }
