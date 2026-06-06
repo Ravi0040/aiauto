@@ -3,43 +3,36 @@
   "nodes": [
     {
       "parameters": {
-        "pollTimes": {
-          "item": [
-            {}
-          ]
-        },
-        "filters": {
-          "readStatus": "unread",
-          "foldersToInclude": [
-            "inbox"
-          ],
-          "custom": "toRecipients/any(r:r/emailAddress/address eq 'BeAware@tpcentralodisha.com') or ccRecipients/any(r:r/emailAddress/address eq 'BeAware@tpcentralodisha.com')"
-        },
-        "options": {},
-        "event": "messageReceived"
+        "mailbox": "INBOX",
+        "postProcessAction": "read",
+        "format": "resolved",
+        "downloadAttachments": false,
+        "options": {
+          "customEmailConfig": "[\"UNSEEN\"]"
+        }
       },
-      "name": "Outlook Trigger - BeAware Inbox",
-      "type": "n8n-nodes-base.microsoftOutlookTrigger",
-      "typeVersion": 1,
+      "name": "IMAP Trigger - BeAware Inbox",
+      "type": "n8n-nodes-base.emailReadImap",
+      "typeVersion": 2,
       "position": [
         -32,
         0
       ],
       "id": "4bb4ddf7-4db6-42f3-8258-2f168f4c95d8",
       "credentials": {
-        "microsoftOutlookOAuth2Api": {
-          "id": "rzOcDIM6gHzFiWyG",
-          "name": "BeAware Outlook OAuth2 Credential"
+        "imap": {
+          "id": "",
+          "name": "BeAware IMAP Credential"
         }
       },
       "notesInFlow": true,
-      "notes": "Mailbox login is NOT entered in this JSON file. Create an n8n credential first: Credentials → New → Microsoft Outlook OAuth2 API → sign in as BeAware@tpcentralodisha.com (or an account with delegated/shared-mailbox access). Then open this node and select the credential named \"BeAware Outlook OAuth2 Credential\". This trigger polls unread Inbox messages addressed to BeAware@tpcentralodisha.com in To or Cc."
+      "notes": "This node reads incoming mail by logging into the BeAware@tpcentralodisha.com mailbox through an n8n IMAP credential. Put the mailbox username, password/app-password, IMAP host, port, and SSL setting in n8n Credentials → New → IMAP. Name that credential \"BeAware IMAP Credential\" and select it on this node. Credentials are encrypted by n8n; do not hardcode the password in this JSON file."
     },
     {
       "parameters": {
-        "content": "## BeAware mailbox credential setup\n\nDo **not** paste the mailbox password into this workflow JSON. n8n stores mailbox login details in **Credentials**.\n\n1. In n8n, go to **Credentials → New**.\n2. Choose **Microsoft Outlook OAuth2 API**.\n3. Name it **BeAware Outlook OAuth2 Credential**.\n4. Sign in with **BeAware@tpcentralodisha.com**, or with a Microsoft 365 account that has delegated/shared-mailbox access to it.\n5. Open **Outlook Trigger - BeAware Inbox** and select that credential.\n6. Open **Send Result** and select the same credential if this workflow should send from the BeAware mailbox.\n\nThis workflow only references the credential by name/id; the actual OAuth token is created and encrypted by n8n at runtime.",
-        "height": 300,
-        "width": 520,
+        "content": "## BeAware mailbox credential setup\n\nThis workflow now uses **Email Trigger (IMAP)** so it can log in to webmail/IMAP and fetch incoming messages.\n\nDo **not** paste the mailbox password into this workflow JSON. n8n stores mailbox login details in **Credentials**.\n\n1. In n8n, go to **Credentials → New**.\n2. Choose **IMAP**.\n3. Name it **BeAware IMAP Credential**.\n4. Set **User Name** to **BeAware@tpcentralodisha.com**.\n5. Enter the mailbox password or app password.\n6. Enter the IMAP host from your mail administrator, for example `imap.your-mail-provider.com`.\n7. Use port `993` with SSL/TLS unless your mail administrator provides a different value.\n8. Open **IMAP Trigger - BeAware Inbox** and select **BeAware IMAP Credential**.\n\nThe trigger reads `INBOX`, looks for unseen messages, marks each processed message as read, and passes the email into the spam-classifier nodes.\n\n## Optional sending setup\n\nThe final **Send Result** node uses SMTP. If you want n8n to email the analysis result, create **Credentials → New → SMTP**, name it **BeAware SMTP Credential**, and use the SMTP host/port/login supplied by your mail administrator.",
+        "height": 430,
+        "width": 560,
         "color": 4
       },
       "name": "How to connect BeAware mailbox credentials",
@@ -53,7 +46,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\n\nreturn $input.all();"
+        "jsCode": "const normalizeAddress = (value) => {\n  if (!value) return '';\n  if (typeof value === 'string') return value;\n  if (Array.isArray(value)) return value.map(normalizeAddress).filter(Boolean).join(', ');\n  if (value.text) return value.text;\n  if (value.address) return value.name ? `${value.name} <${value.address}>` : value.address;\n  if (value.value) return normalizeAddress(value.value);\n  return String(value);\n};\n\nconst getHeader = (item, name) => {\n  const lowerName = name.toLowerCase();\n  const headers = item.json.headers ?? item.json.metadata ?? {};\n  if (headers[name] !== undefined) return headers[name];\n  if (headers[lowerName] !== undefined) return headers[lowerName];\n\n  for (const [key, value] of Object.entries(headers)) {\n    if (key.toLowerCase() === lowerName) return value;\n  }\n\n  return undefined;\n};\n\nfor (const item of $input.all()) {\n  const existingHeaders = item.json.headers ?? item.json.metadata ?? {};\n\n  item.json.mailbox = 'BeAware@tpcentralodisha.com';\n  item.json.headers = {\n    ...existingHeaders,\n    from: normalizeAddress(item.json.from ?? getHeader(item, 'from')),\n    to: normalizeAddress(item.json.to ?? getHeader(item, 'to')),\n    cc: normalizeAddress(item.json.cc ?? getHeader(item, 'cc')),\n    subject: item.json.subject ?? getHeader(item, 'subject') ?? '',\n    'return-path': normalizeAddress(getHeader(item, 'return-path')),\n    'authentication-results': normalizeAddress(getHeader(item, 'authentication-results')),\n    received: getHeader(item, 'received') ?? [],\n  };\n\n  item.json.body = item.json.textPlain ?? item.json.textHtml ?? item.json.html ?? item.json.text ?? item.json.raw ?? '';\n}\n\nreturn $input.all();"
       },
       "name": "Extract EML",
       "type": "n8n-nodes-base.code",
@@ -283,27 +276,32 @@
     },
     {
       "parameters": {
-        "toRecipients": "={{ $json.headers['from'] }}",
+        "fromEmail": "BeAware@tpcentralodisha.com",
+        "toEmail": "={{ $json.headers['from'] }}",
         "subject": "Email Analysis Result",
-        "additionalFields": {}
+        "emailFormat": "text",
+        "text": "={{ 'Verdict: ' + $json.verdict + '\\n\\nFrom: ' + ($json.headers?.from || '') + '\\nSubject: ' + ($json.headers?.subject || '') }}",
+        "options": {
+          "appendAttribution": false
+        }
       },
       "name": "Send Result",
-      "type": "n8n-nodes-base.microsoftOutlook",
+      "type": "n8n-nodes-base.emailSend",
       "position": [
         1824,
         32
       ],
       "id": "49c6348e-f60f-414e-832f-673d23905a48",
-      "typeVersion": 2,
+      "typeVersion": 2.1,
       "webhookId": "8524d791-14a9-4ed5-9973-39e1db1fa9a2",
       "credentials": {
-        "microsoftOutlookOAuth2Api": {
-          "id": "rzOcDIM6gHzFiWyG",
-          "name": "BeAware Outlook OAuth2 Credential"
+        "smtp": {
+          "id": "",
+          "name": "BeAware SMTP Credential"
         }
       },
       "notesInFlow": true,
-      "notes": "Uses the same n8n Microsoft Outlook OAuth2 credential as the BeAware trigger. Select the BeAware Outlook credential here after importing the workflow."
+      "notes": "For webmail providers, create n8n Credentials → New → SMTP named \"BeAware SMTP Credential\" using the same mailbox or an approved sender account. Select it here to send the analysis result."
     }
   ],
   "pinData": {},
@@ -451,7 +449,7 @@
         ]
       ]
     },
-    "Outlook Trigger - BeAware Inbox": {
+    "IMAP Trigger - BeAware Inbox": {
       "main": [
         [
           {
