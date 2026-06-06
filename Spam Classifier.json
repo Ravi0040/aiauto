@@ -11,7 +11,7 @@
           "customEmailConfig": "[\"UNSEEN\"]"
         }
       },
-      "name": "IMAP Trigger - BeAware Inbox",
+      "name": "Exchange IMAP Trigger - BeAware Inbox",
       "type": "n8n-nodes-base.emailReadImap",
       "typeVersion": 2,
       "position": [
@@ -22,17 +22,17 @@
       "credentials": {
         "imap": {
           "id": "",
-          "name": "BeAware IMAP Credential"
+          "name": "BeAware Exchange IMAP Credential"
         }
       },
       "notesInFlow": true,
-      "notes": "This node reads incoming mail by logging into the BeAware@tpcentralodisha.com mailbox through an n8n IMAP credential. Put the mailbox username, password/app-password, IMAP host, port, and SSL setting in n8n Credentials → New → IMAP. Name that credential \"BeAware IMAP Credential\" and select it on this node. Credentials are encrypted by n8n; do not hardcode the password in this JSON file."
+      "notes": "On-premises Exchange note: this workflow does not use Microsoft 365/Graph OAuth. It reads the BeAware@tpcentralodisha.com mailbox through Exchange IMAP. In n8n create Credentials → New → IMAP named \"BeAware Exchange IMAP Credential\". Use the Exchange IMAP/CAS hostname from your Exchange administrator, port 993 with SSL/TLS unless your admin specifies otherwise, and the mailbox login format required by your Exchange environment (often BeAware@tpcentralodisha.com, DOMAIN\\username, or a service account with mailbox access). Select that credential on this node."
     },
     {
       "parameters": {
-        "content": "## BeAware mailbox credential setup\n\nThis workflow now uses **Email Trigger (IMAP)** so it can log in to webmail/IMAP and fetch incoming messages.\n\nDo **not** paste the mailbox password into this workflow JSON. n8n stores mailbox login details in **Credentials**.\n\n1. In n8n, go to **Credentials → New**.\n2. Choose **IMAP**.\n3. Name it **BeAware IMAP Credential**.\n4. Set **User Name** to **BeAware@tpcentralodisha.com**.\n5. Enter the mailbox password or app password.\n6. Enter the IMAP host from your mail administrator, for example `imap.your-mail-provider.com`.\n7. Use port `993` with SSL/TLS unless your mail administrator provides a different value.\n8. Open **IMAP Trigger - BeAware Inbox** and select **BeAware IMAP Credential**.\n\nThe trigger reads `INBOX`, looks for unseen messages, marks each processed message as read, and passes the email into the spam-classifier nodes.\n\n## Optional sending setup\n\nThe final **Send Result** node uses SMTP. If you want n8n to email the analysis result, create **Credentials → New → SMTP**, name it **BeAware SMTP Credential**, and use the SMTP host/port/login supplied by your mail administrator.",
-        "height": 430,
-        "width": 560,
+        "content": "## On-premises Exchange mailbox setup\n\nThis workflow is planned for **on-premises Exchange**, not Microsoft 365/Office 365. n8n should connect to the Exchange server using **IMAP** for reading and **SMTP** for sending.\n\nDo **not** paste the mailbox password into this workflow JSON. n8n stores mailbox login details in encrypted **Credentials**.\n\n### Incoming mail: IMAP\n\n1. Ask the Exchange administrator to confirm IMAP is enabled for this mailbox/server.\n2. In n8n, go to **Credentials → New → IMAP**.\n3. Name it **BeAware Exchange IMAP Credential**.\n4. Set the username to the format required by your Exchange server, usually **BeAware@tpcentralodisha.com**, **DOMAIN\\username**, or a service account with access to the BeAware mailbox.\n5. Enter the mailbox password or service-account password.\n6. Enter the on-prem Exchange IMAP/CAS hostname, for example `mail.tpcentralodisha.com` or the hostname provided by the Exchange administrator.\n7. Use port `993` with SSL/TLS unless the Exchange administrator provides a different value.\n8. Open **Exchange IMAP Trigger - BeAware Inbox** and select **BeAware Exchange IMAP Credential**.\n\nThe trigger reads `INBOX`, searches for unseen messages, marks processed messages as read, and passes the email into the spam-classifier nodes.\n\n### Outgoing mail: SMTP\n\nCreate **Credentials → New → SMTP** named **BeAware Exchange SMTP Credential** using your on-prem Exchange SMTP server/relay settings. Common ports are `587` with STARTTLS for authenticated SMTP or `25` for an internal relay, depending on your Exchange configuration.",
+        "height": 500,
+        "width": 620,
         "color": 4
       },
       "name": "How to connect BeAware mailbox credentials",
@@ -297,11 +297,11 @@
       "credentials": {
         "smtp": {
           "id": "",
-          "name": "BeAware SMTP Credential"
+          "name": "BeAware Exchange SMTP Credential"
         }
       },
       "notesInFlow": true,
-      "notes": "For webmail providers, create n8n Credentials → New → SMTP named \"BeAware SMTP Credential\" using the same mailbox or an approved sender account. Select it here to send the analysis result."
+      "notes": "On-premises Exchange note: this node sends through SMTP, not Microsoft 365/Graph. Create n8n Credentials → New → SMTP named \"BeAware Exchange SMTP Credential\" using the Exchange SMTP host/relay, port, TLS setting, and login approved by your Exchange administrator."
     }
   ],
   "pinData": {},
@@ -449,7 +449,7 @@
         ]
       ]
     },
-    "IMAP Trigger - BeAware Inbox": {
+    "Exchange IMAP Trigger - BeAware Inbox": {
       "main": [
         [
           {
