@@ -3,30 +3,37 @@
   "nodes": [
     {
       "parameters": {
-        "mailbox": "INBOX",
-        "postProcessAction": "read",
-        "format": "resolved",
-        "downloadAttachments": false,
-        "options": {
-          "customEmailConfig": "[\"UNSEEN\"]"
-        }
+        "pollTimes": {
+          "item": [
+            {}
+          ]
+        },
+        "filters": {
+          "readStatus": "unread",
+          "foldersToInclude": [
+            "inbox"
+          ],
+          "custom": "toRecipients/any(r:r/emailAddress/address eq 'BeAware@tpcentralodisha.com') or ccRecipients/any(r:r/emailAddress/address eq 'BeAware@tpcentralodisha.com')"
+        },
+        "options": {},
+        "event": "messageReceived"
       },
-      "name": "Exchange IMAP Trigger - BeAware Inbox",
-      "type": "n8n-nodes-base.emailReadImap",
-      "typeVersion": 2,
+      "name": "Outlook Trigger - BeAware Inbox",
+      "type": "n8n-nodes-base.microsoftOutlookTrigger",
+      "typeVersion": 1,
       "position": [
         -32,
         0
       ],
       "id": "4bb4ddf7-4db6-42f3-8258-2f168f4c95d8",
       "credentials": {
-        "imap": {
-          "id": "",
-          "name": "BeAware Exchange IMAP Credential"
+        "microsoftOutlookOAuth2Api": {
+          "id": "rzOcDIM6gHzFiWyG",
+          "name": "BeAware@tpcentralodisha.com"
         }
       },
       "notesInFlow": true,
-      "notes": "On-premises Exchange note: this workflow does not use Microsoft 365/Graph OAuth. It reads the BeAware@tpcentralodisha.com mailbox through Exchange IMAP. In n8n create Credentials → New → IMAP named \"BeAware Exchange IMAP Credential\". Use the Exchange IMAP/CAS hostname from your Exchange administrator, port 993 with SSL/TLS unless your admin specifies otherwise, and the mailbox login format required by your Exchange environment (often BeAware@tpcentralodisha.com, DOMAIN\\username, or a service account with mailbox access). Select that credential on this node."
+      "notes": "This trigger is configured for incoming unread messages addressed to BeAware@tpcentralodisha.com. In n8n, connect this node to a Microsoft Outlook OAuth2 credential that signs in as BeAware@tpcentralodisha.com, or an account with delegated access to that mailbox."
     },
     {
       "parameters": {
@@ -449,7 +456,7 @@
         ]
       ]
     },
-    "Exchange IMAP Trigger - BeAware Inbox": {
+    "Outlook Trigger - BeAware Inbox": {
       "main": [
         [
           {
