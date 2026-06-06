@@ -8,10 +8,17 @@
             {}
           ]
         },
-        "filters": {},
-        "options": {}
+        "filters": {
+          "readStatus": "unread",
+          "foldersToInclude": [
+            "inbox"
+          ],
+          "custom": "toRecipients/any(r:r/emailAddress/address eq 'BeAware@tpcentralodisha.com') or ccRecipients/any(r:r/emailAddress/address eq 'BeAware@tpcentralodisha.com')"
+        },
+        "options": {},
+        "event": "messageReceived"
       },
-      "name": "Outlook Trigger",
+      "name": "Outlook Trigger - BeAware Inbox",
       "type": "n8n-nodes-base.microsoftOutlookTrigger",
       "typeVersion": 1,
       "position": [
@@ -22,9 +29,11 @@
       "credentials": {
         "microsoftOutlookOAuth2Api": {
           "id": "rzOcDIM6gHzFiWyG",
-          "name": "Microsoft Outlook account"
+          "name": "BeAware@tpcentralodisha.com"
         }
-      }
+      },
+      "notesInFlow": true,
+      "notes": "This trigger is configured for incoming unread messages addressed to BeAware@tpcentralodisha.com. In n8n, connect this node to a Microsoft Outlook OAuth2 credential that signs in as BeAware@tpcentralodisha.com, or an account with delegated access to that mailbox."
     },
     {
       "parameters": {
@@ -281,17 +290,6 @@
   ],
   "pinData": {},
   "connections": {
-    "Outlook Trigger": {
-      "main": [
-        [
-          {
-            "node": "Extract EML",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Extract EML": {
       "main": [
         [
@@ -429,6 +427,17 @@
         [
           {
             "node": "Send Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Outlook Trigger - BeAware Inbox": {
+      "main": [
+        [
+          {
+            "node": "Extract EML",
             "type": "main",
             "index": 0
           }
