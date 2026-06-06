@@ -37,7 +37,23 @@
     },
     {
       "parameters": {
-        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\n\nreturn $input.all();"
+        "content": "## On-premises Exchange mailbox setup\n\nThis workflow is planned for **on-premises Exchange**, not Microsoft 365/Office 365. n8n should connect to the Exchange server using **IMAP** for reading and **SMTP** for sending.\n\nDo **not** paste the mailbox password into this workflow JSON. n8n stores mailbox login details in encrypted **Credentials**.\n\n### Incoming mail: IMAP\n\n1. Ask the Exchange administrator to confirm IMAP is enabled for this mailbox/server.\n2. In n8n, go to **Credentials → New → IMAP**.\n3. Name it **BeAware Exchange IMAP Credential**.\n4. Set the username to the format required by your Exchange server, usually **BeAware@tpcentralodisha.com**, **DOMAIN\\username**, or a service account with access to the BeAware mailbox.\n5. Enter the mailbox password or service-account password.\n6. Enter the on-prem Exchange IMAP/CAS hostname, for example `mail.tpcentralodisha.com` or the hostname provided by the Exchange administrator.\n7. Use port `993` with SSL/TLS unless the Exchange administrator provides a different value.\n8. Open **Exchange IMAP Trigger - BeAware Inbox** and select **BeAware Exchange IMAP Credential**.\n\nThe trigger reads `INBOX`, searches for unseen messages, marks processed messages as read, and passes the email into the spam-classifier nodes.\n\n### Outgoing mail: SMTP\n\nCreate **Credentials → New → SMTP** named **BeAware Exchange SMTP Credential** using your on-prem Exchange SMTP server/relay settings. Common ports are `587` with STARTTLS for authenticated SMTP or `25` for an internal relay, depending on your Exchange configuration.",
+        "height": 500,
+        "width": 620,
+        "color": 4
+      },
+      "name": "How to connect BeAware mailbox credentials",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -608,
+        -272
+      ],
+      "id": "7a3f1a40-f7a9-4df8-9e2c-0e0000000001"
+    },
+    {
+      "parameters": {
+        "jsCode": "const normalizeAddress = (value) => {\n  if (!value) return '';\n  if (typeof value === 'string') return value;\n  if (Array.isArray(value)) return value.map(normalizeAddress).filter(Boolean).join(', ');\n  if (value.text) return value.text;\n  if (value.address) return value.name ? `${value.name} <${value.address}>` : value.address;\n  if (value.value) return normalizeAddress(value.value);\n  return String(value);\n};\n\nconst getHeader = (item, name) => {\n  const lowerName = name.toLowerCase();\n  const headers = item.json.headers ?? item.json.metadata ?? {};\n  if (headers[name] !== undefined) return headers[name];\n  if (headers[lowerName] !== undefined) return headers[lowerName];\n\n  for (const [key, value] of Object.entries(headers)) {\n    if (key.toLowerCase() === lowerName) return value;\n  }\n\n  return undefined;\n};\n\nfor (const item of $input.all()) {\n  const existingHeaders = item.json.headers ?? item.json.metadata ?? {};\n\n  item.json.mailbox = 'BeAware@tpcentralodisha.com';\n  item.json.headers = {\n    ...existingHeaders,\n    from: normalizeAddress(item.json.from ?? getHeader(item, 'from')),\n    to: normalizeAddress(item.json.to ?? getHeader(item, 'to')),\n    cc: normalizeAddress(item.json.cc ?? getHeader(item, 'cc')),\n    subject: item.json.subject ?? getHeader(item, 'subject') ?? '',\n    'return-path': normalizeAddress(getHeader(item, 'return-path')),\n    'authentication-results': normalizeAddress(getHeader(item, 'authentication-results')),\n    received: getHeader(item, 'received') ?? [],\n  };\n\n  item.json.body = item.json.textPlain ?? item.json.textHtml ?? item.json.html ?? item.json.text ?? item.json.raw ?? '';\n}\n\nreturn $input.all();"
       },
       "name": "Extract EML",
       "type": "n8n-nodes-base.code",
@@ -267,25 +283,32 @@
     },
     {
       "parameters": {
-        "toRecipients": "={{ $json.headers['from'] }}",
+        "fromEmail": "BeAware@tpcentralodisha.com",
+        "toEmail": "={{ $json.headers['from'] }}",
         "subject": "Email Analysis Result",
-        "additionalFields": {}
+        "emailFormat": "text",
+        "text": "={{ 'Verdict: ' + $json.verdict + '\\n\\nFrom: ' + ($json.headers?.from || '') + '\\nSubject: ' + ($json.headers?.subject || '') }}",
+        "options": {
+          "appendAttribution": false
+        }
       },
       "name": "Send Result",
-      "type": "n8n-nodes-base.microsoftOutlook",
+      "type": "n8n-nodes-base.emailSend",
       "position": [
         1824,
         32
       ],
       "id": "49c6348e-f60f-414e-832f-673d23905a48",
-      "typeVersion": 2,
+      "typeVersion": 2.1,
       "webhookId": "8524d791-14a9-4ed5-9973-39e1db1fa9a2",
       "credentials": {
-        "microsoftOutlookOAuth2Api": {
-          "id": "rzOcDIM6gHzFiWyG",
-          "name": "Microsoft Outlook account"
+        "smtp": {
+          "id": "",
+          "name": "BeAware Exchange SMTP Credential"
         }
-      }
+      },
+      "notesInFlow": true,
+      "notes": "On-premises Exchange note: this node sends through SMTP, not Microsoft 365/Graph. Create n8n Credentials → New → SMTP named \"BeAware Exchange SMTP Credential\" using the Exchange SMTP host/relay, port, TLS setting, and login approved by your Exchange administrator."
     }
   ],
   "pinData": {},
