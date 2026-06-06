@@ -1,0 +1,451 @@
+{
+  "name": "Spam Classifier",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {}
+          ]
+        },
+        "filters": {},
+        "options": {}
+      },
+      "name": "Outlook Trigger",
+      "type": "n8n-nodes-base.microsoftOutlookTrigger",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        0
+      ],
+      "id": "4bb4ddf7-4db6-42f3-8258-2f168f4c95d8",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "rzOcDIM6gHzFiWyG",
+          "name": "Microsoft Outlook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\n\nreturn $input.all();"
+      },
+      "name": "Extract EML",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        144,
+        -240
+      ],
+      "id": "2f327625-a13f-47e6-b1dd-d2f950270247",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\n\nreturn $input.all();"
+      },
+      "name": "Extract Received",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        208,
+        16
+      ],
+      "id": "a4c1261d-e1fc-4321-8989-593bc0af59a8",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "keep": "lastItems"
+      },
+      "name": "Keep Last Received",
+      "type": "n8n-nodes-base.limit",
+      "position": [
+        400,
+        -192
+      ],
+      "id": "bd21ec5a-329f-4d93-9c59-fed54edb141a",
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "options": {}
+      },
+      "name": "Extract IP",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        480,
+        0
+      ],
+      "id": "39fae6d1-7012-4272-816b-5be08fb9362c",
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "url": "=http://ip-api.com/json/{{$json.ip}}",
+        "options": {}
+      },
+      "name": "IP Geo Lookup",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        624,
+        -208
+      ],
+      "id": "a000bb24-02fc-4dac-90e6-c73ab8b5d5e9",
+      "typeVersion": 4.4
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "auth",
+              "value": "={{ $json.headers['authentication-results'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Extract Auth Header",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        688,
+        0
+      ],
+      "id": "c7da010f-84e9-414d-9e86-1404758c36d1",
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "options": {}
+      },
+      "name": "Parse Auth",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        912,
+        -192
+      ],
+      "id": "3136f1c2-05fb-43c3-8c59-d63cb014146d",
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\n\nreturn $input.all();"
+      },
+      "name": "Extract URLs",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        944,
+        16
+      ],
+      "id": "2f7d51c1-278d-4d10-9cc2-0808ade86062",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.virustotal.com/api/v3/files",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "virusTotalApi",
+        "options": {}
+      },
+      "name": "VirusTotal URL Check",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1200,
+        -192
+      ],
+      "id": "7f525ad5-6862-442a-89ab-a79680c5e699",
+      "typeVersion": 4.4,
+      "credentials": {
+        "oAuth2Api": {
+          "id": "YKqws0ZKhqdNUrjZ",
+          "name": "Unnamed credential 2"
+        },
+        "virusTotalApi": {
+          "id": "OFWMAi3utZ52y3xM",
+          "name": "VirusTotal account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "linkVerdict",
+              "value": "={{ $json.data?.attributes?.last_analysis_stats?.malicious > 0 ? 'malicious' : 'clean' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Link Verdict",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        1232,
+        32
+      ],
+      "id": "3bfc999d-6348-49c5-987f-a0c669411cd8",
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "fromDomain",
+              "value": "={{ $json.headers['from']?.match(/@([^>]+)/)?.[1] }}"
+            },
+            {
+              "name": "returnDomain",
+              "value": "={{ $json.headers['return-path']?.match(/@([^>]+)/)?.[1] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Domain Extraction",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        1488,
+        -176
+      ],
+      "id": "4533e275-956f-4940-8bdd-a72f202f942c",
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "spoof",
+              "value": "={{ $json.fromDomain !== $json.returnDomain }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Spoof Check",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        1568,
+        16
+      ],
+      "id": "7acb0a9f-851a-41e9-aa1b-aea74b649997",
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "verdict",
+              "value": "={{ ($json.spf==='fail'||$json.dkim==='fail'||$json.dmarc==='fail'||$json.linkVerdict==='malicious'||$json.spoof===true) ? '🚨 SUSPICIOUS' : '✅ SAFE' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Final Verdict",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        1808,
+        -160
+      ],
+      "id": "101777c0-8163-4a99-a234-bc97eb8950c2",
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "toRecipients": "={{ $json.headers['from'] }}",
+        "subject": "Email Analysis Result",
+        "additionalFields": {}
+      },
+      "name": "Send Result",
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "position": [
+        1824,
+        32
+      ],
+      "id": "49c6348e-f60f-414e-832f-673d23905a48",
+      "typeVersion": 2,
+      "webhookId": "8524d791-14a9-4ed5-9973-39e1db1fa9a2",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "rzOcDIM6gHzFiWyG",
+          "name": "Microsoft Outlook account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Outlook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract EML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract EML": {
+      "main": [
+        [
+          {
+            "node": "Extract Received",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Received": {
+      "main": [
+        [
+          {
+            "node": "Keep Last Received",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep Last Received": {
+      "main": [
+        [
+          {
+            "node": "Extract IP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract IP": {
+      "main": [
+        [
+          {
+            "node": "IP Geo Lookup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IP Geo Lookup": {
+      "main": [
+        [
+          {
+            "node": "Extract Auth Header",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Auth Header": {
+      "main": [
+        [
+          {
+            "node": "Parse Auth",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Auth": {
+      "main": [
+        [
+          {
+            "node": "Extract URLs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract URLs": {
+      "main": [
+        [
+          {
+            "node": "VirusTotal URL Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "VirusTotal URL Check": {
+      "main": [
+        [
+          {
+            "node": "Link Verdict",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Link Verdict": {
+      "main": [
+        [
+          {
+            "node": "Domain Extraction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Domain Extraction": {
+      "main": [
+        [
+          {
+            "node": "Spoof Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Spoof Check": {
+      "main": [
+        [
+          {
+            "node": "Final Verdict",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final Verdict": {
+      "main": [
+        [
+          {
+            "node": "Send Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "61b5279a-9f31-4d84-a2be-0c47142bd2c0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a9624178a12d13df366a8338c8ff2211f01ac5aa253b9b7a92193fedc42c70c1"
+  },
+  "id": "SFgALEp1ymGpCEEK",
+  "tags": []
+}
